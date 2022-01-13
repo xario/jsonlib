@@ -1,40 +1,6 @@
 #include "jsonlib.h"
 
-// remove all white space from the json string... preserving strings
-String jsonRemoveWhiteSpace(const String& json){
-  int i = 0;
-  int cursor = 0;
-  int quote_count = 0;
-  String out = String();
-  char out_chars[json.length()+1];
-  
-  for(i=0; i<json.length(); i++){
-    if(json[i] == ' ' || json[i] == '\n' || json[i] == '\t' || json[i] == '\r'){
-      if(quote_count % 2){ // inside a string
-	out_chars[cursor++] = json[i];
-      }
-      else{ // outside a string!
-      }
-    }
-    else{
-      if(json[i] == 34){ // ascii dounble quote
-	//check for escaped quote
-	if(i > 0 && json[i - 1] == '\\'){
-	  //escaped!
-	}
-	else{ // not escaped
-	  quote_count++;
-	}
-      }
-      out_chars[cursor++] = json[i];
-    }
-  }
-  out_chars[cursor] = 0;
-  out = String(out_chars);
-  return out;
-}
-
-String jsonIndexList(const String& json, int idx){
+String jsonIndexList(String json, int idx){
   int count = 1; // number of braces seen { = +1 } = -1
   int i = 1;
   int item_idx = 0;
@@ -67,23 +33,20 @@ String jsonIndexList(const String& json, int idx){
 }
 
 // return a sub-json struct
-String jsonExtract(const String& json, const String& nameArg){
+String jsonExtract(String json, String name){
   char next;
-  int start = 0, stop = 0;
-  static const size_t npos = -1;
-  const String QUOTE = "\"";
+  int start, stop;
   
-  String name = QUOTE + nameArg + QUOTE;
-  if (json.indexOf(name) == npos) return json.substring(0,0);
+  name = String("\"") + name + String("\"");
   start = json.indexOf(name) + name.length() + 1;
   next = json.charAt(start);
   if(next == '\"'){
-    //Serial.println(".. a string");
+    // Serial.println(".. a string");
     start = start + 1;
     stop = json.indexOf('"', start);
   }
   else if(next == '['){
-    //Serial.println(".. a list");
+    // Serial.println(".. a list");
     int count = 1;
     int i = start;
     while(count > 0 && i++ < json.length()){
@@ -97,7 +60,7 @@ String jsonExtract(const String& json, const String& nameArg){
     stop = i + 1;
   }
   else if(next == '{'){
-    //Serial.println(".. a struct");
+    // Serial.println(".. a struct");
     int count = 1;
     int i = start;
     while(count > 0 && i++ < json.length()){
@@ -111,12 +74,18 @@ String jsonExtract(const String& json, const String& nameArg){
     stop = i + 1;
   }
   else if(next == '.' || next == '-' || ('0' <= next  && next <= '9')){
-    //Serial.println(".. a number");
+    // Serial.println(".. a number");
     int i = start;
-    while(i++ < json.length() && (json.charAt(i) == '.' || ('0' <= json.charAt(i)  && json.charAt(i) <= '9'))){
+    while(i++ < json.length() && json.charAt(i) == '.' || ('0' <= json.charAt(i)  && json.charAt(i) <= '9')){
     }
     stop = i;
+  } else {
+    String nextFour = json.substring(start, start + 4);
+    nextFour.toLowerCase();
+    
+    if (nextFour == "null") {
+      stop = start + 4;
+    } 
   }
   return json.substring(start, stop);
 }
-
